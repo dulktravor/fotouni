@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FotoUni - Editor de Fotos para la Universidad</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- MediaPipe Selfie Segmentation -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+    
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="dark-theme">
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="logo-area">
+          <div class="logo-icon">
+            <i data-lucide="graduation-cap"></i>
+          </div>
+          <div class="logo-text">
+            <h1>Foto<span>Uni</span></h1>
+            <p>Editor de fotos universitario paso a paso</p>
+          </div>
+        </div>
+        <div class="theme-toggle" id="themeToggleBtn">
+          <i data-lucide="sun" class="sun-icon"></i>
+          <i data-lucide="moon" class="moon-icon"></i>
+        </div>
+      </header>
+
+      <!-- Main Layout -->
+      <main class="app-main">
+        
+        <!-- Left Side: Wizard & Editor -->
+        <section class="editor-section card">
+          <!-- Wizard Progress Bar -->
+          <div class="wizard-progress">
+            <div class="progress-line">
+              <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+            <div class="step-indicator active" data-step="1">
+              <span class="step-num">1</span>
+              <span class="step-label">Subir</span>
+            </div>
+            <div class="step-indicator" data-step="2">
+              <span class="step-num">2</span>
+              <span class="step-label">Recortar</span>
+            </div>
+            <div class="step-indicator" data-step="3">
+              <span class="step-num">3</span>
+              <span class="step-label">Ajustar</span>
+            </div>
+            <div class="step-indicator" data-step="4">
+              <span class="step-num">4</span>
+              <span class="step-label">Listo</span>
+            </div>
+          </div>
+
+          <!-- Wizard Pages Container -->
+          <div class="wizard-pages">
+            
+            <!-- STEP 1: UPLOAD -->
+            <div class="wizard-page active" id="page-1">
+              <div class="upload-zone" id="uploadZone">
+                <i data-lucide="image-plus" class="upload-icon"></i>
+                <h3>Arrastra la foto de tu celular aquí</h3>
+                <p>O haz clic para buscarla en tus archivos</p>
+                <div class="file-limits">Formatos aceptados: JPG, PNG, WEBP (Se convertirá a JPG automáticamente)</div>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;" />
+                <button class="btn btn-primary" id="selectFileBtn">
+                  <i data-lucide="folder-open"></i> Seleccionar Foto
+                </button>
+              </div>
+              <div class="or-divider">o también puedes</div>
+              <div class="camera-action">
+                <button class="btn btn-secondary" id="useCameraBtn">
+                  <i data-lucide="camera"></i> Tomar foto con la cámara
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 2: CROP & ALIGN -->
+            <div class="wizard-page" id="page-2">
+              <div class="cropper-wrapper">
+                <div class="img-container" id="cropperImgContainer">
+                  <img id="cropperImage" src="" alt="Imagen a recortar" />
+                </div>
+                <!-- Overlay Guide Silhouette -->
+                <div class="silhouette-overlay" id="silhouetteOverlay">
+                  <svg viewBox="0 0 240 288" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Oval for Head -->
+                    <ellipse cx="120" cy="115" rx="55" ry="70" class="guide-line" />
+                    <!-- Center vertical line -->
+                    <line x1="120" y1="20" x2="120" y2="280" class="guide-line-dashed" />
+                    <!-- Eyes Horizontal Guide Line -->
+                    <line x1="40" y1="105" x2="200" y2="105" class="guide-line-dashed" />
+                    <!-- Mouth Horizontal Guide Line -->
+                    <line x1="70" y1="155" x2="170" y2="155" class="guide-line-dashed" />
+                    <!-- Shoulders contour -->
+                    <path d="M 30,288 C 30,240 70,205 120,205 C 170,205 210,240 210,288" class="guide-line" />
+                  </svg>
+                  <div class="silhouette-tip">Alinea el rostro y los hombros con la silueta</div>
+                </div>
+              </div>
+              
+              <div class="cropper-controls">
+                <button class="btn-icon" id="btnRotateLeft" title="Rotar a la izquierda">
+                  <i data-lucide="rotate-ccw"></i>
+                </button>
+                <button class="btn-icon" id="btnRotateRight" title="Rotar a la derecha">
+                  <i data-lucide="rotate-cw"></i>
+                </button>
+                <button class="btn-icon" id="btnZoomIn" title="Acercar">
+                  <i data-lucide="zoom-in"></i>
+                </button>
+                <button class="btn-icon" id="btnZoomOut" title="Alejar">
+                  <i data-lucide="zoom-out"></i>
+                </button>
+                <button class="btn-icon" id="btnResetCrop" title="Restablecer">
+                  <i data-lucide="refresh-cw"></i>
+                </button>
+                <button class="btn-icon active" id="btnToggleSilhouette" title="Mostrar/Ocultar silueta de guía">
+                  <i data-lucide="user-check"></i>
+                </button>
+              </div>
+              
+              <div class="step-actions">
+                <button class="btn btn-secondary" id="btnBackTo1">Atrás</button>
+                <button class="btn btn-primary" id="btnNextTo3">Siguiente paso <i data-lucide="arrow-right"></i></button>
+              </div>
+            </div>
+
+            <!-- STEP 3: BACKGROUND & COLOR -->
+            <div class="wizard-page" id="page-3">
+              <div class="preview-stage">
+                <div class="preview-canvas-wrapper">
+                  <canvas id="processingCanvas" width="240" height="288"></canvas>
+                  <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <span id="loadingText">Procesando fondo...</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="adjustment-controls">
+                <!-- Background Whitening Option -->
+                <div class="control-group switch-group">
+                  <label class="control-label" for="removeBgToggle">
+                    <span class="label-title">Fondo Blanco Inteligente (AI)</span>
+                    <span class="label-desc">Quita el fondo actual y lo hace blanco puro</span>
+                  </label>
+                  <div class="switch-control">
+                    <input type="checkbox" id="removeBgToggle" checked />
+                    <span class="switch-slider"></span>
+                  </div>
+                </div>
+
+                <!-- Manual Brightness -->
+                <div class="control-group slider-group">
+                  <div class="slider-header">
+                    <label class="control-label" for="brightnessSlider">Brillo (Aclarar)</label>
+                    <span class="slider-val" id="brightnessVal">0%</span>
+                  </div>
+                  <input type="range" id="brightnessSlider" min="-50" max="50" value="0" />
+                </div>
+
+                <!-- Manual Contrast -->
+                <div class="control-group slider-group">
+                  <div class="slider-header">
+                    <label class="control-label" for="contrastSlider">Contraste</label>
+                    <span class="slider-val" id="contrastVal">0%</span>
+                  </div>
+                  <input type="range" id="contrastSlider" min="-50" max="50" value="0" />
+                </div>
+                
+                <!-- Saturation -->
+                <div class="control-group slider-group">
+                  <div class="slider-header">
+                    <label class="control-label" for="saturationSlider">Color (Saturación)</label>
+                    <span class="slider-val" id="saturationVal">0%</span>
+                  </div>
+                  <input type="range" id="saturationSlider" min="-50" max="50" value="0" />
+                </div>
+              </div>
+
+              <div class="step-actions">
+                <button class="btn btn-secondary" id="btnBackTo2">Atrás</button>
+                <button class="btn btn-primary" id="btnNextTo4">Finalizar Foto <i data-lucide="arrow-right"></i></button>
+              </div>
+            </div>
+
+            <!-- STEP 4: EXPORT & DOWNLOAD -->
+            <div class="wizard-page" id="page-4">
+              <div class="final-container">
+                <div class="final-preview-box">
+                  <img id="finalImagePreview" src="" alt="Previsualización final de la foto" />
+                  <div class="photo-badge">240 x 288 px</div>
+                </div>
+                
+                <div class="success-message">
+                  <i data-lucide="party-popper" class="success-icon"></i>
+                  <h3>¡Tu foto ha sido adaptada con éxito!</h3>
+                  <p>Cumple con el 100% de los requisitos solicitados por la universidad.</p>
+                </div>
+                
+                <div class="download-section">
+                  <button class="btn btn-success btn-lg" id="downloadBtn">
+                    <i data-lucide="download"></i> Descargar Foto Lista (.JPG)
+                  </button>
+                </div>
+              </div>
+
+              <div class="step-actions">
+                <button class="btn btn-secondary" id="btnBackTo3">Modificar ajustes</button>
+                <button class="btn btn-outline" id="btnStartOver">Procesar otra foto</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Right Side: Requirements Checklist -->
+        <aside class="requirements-section card">
+          <div class="aside-title">
+            <i data-lucide="check-square"></i>
+            <h2>Requisitos Oficiales</h2>
+          </div>
+          <ul class="req-list">
+            <li class="req-item" id="req-color">
+              <span class="req-icon"><i data-lucide="circle-dashed"></i></span>
+              <div class="req-desc">
+                <strong>Imagen a color con fondo blanco</strong>
+                <span>El fondo debe ser liso y de color blanco puro.</span>
+              </div>
+            </li>
+            <li class="req-item" id="req-pose">
+              <span class="req-icon"><i data-lucide="circle-dashed"></i></span>
+              <div class="req-desc">
+                <strong>De frente y encuadre facial</strong>
+                <span>Tomada de frente, enfocando rostro desde los hombros. Sin gorra ni gafas oscuras.</span>
+              </div>
+            </li>
+            <li class="req-item" id="req-dimensions">
+              <span class="req-icon"><i data-lucide="circle-dashed"></i></span>
+              <div class="req-desc">
+                <strong>Tamaño exacto: 240 x 288 píxeles</strong>
+                <span>La imagen debe medir exactamente 240 píxeles de ancho por 288 de alto.</span>
+              </div>
+            </li>
+            <li class="req-item" id="req-format">
+              <span class="req-icon"><i data-lucide="circle-dashed"></i></span>
+              <div class="req-desc">
+                <strong>Formato de archivo: JPG</strong>
+                <span>No se aceptan PNG, PDF u otros formatos.</span>
+              </div>
+            </li>
+            <li class="req-item" id="req-dpi">
+              <span class="req-icon"><i data-lucide="circle-dashed"></i></span>
+              <div class="req-desc">
+                <strong>Resolución física: 300 DPI</strong>
+                <span>Densidad de impresión de al menos 300 puntos por pulgada (DPI).</span>
+              </div>
+            </li>
+            <li class="req-item" id="req-weight">
+              <span class="req-icon"><i data-lucide="circle-dashed"></i></span>
+              <div class="req-desc">
+                <strong>Peso de archivo: 4 KB a 50 KB</strong>
+                <span>El tamaño del archivo JPG descargado debe estar en este rango.</span>
+              </div>
+            </li>
+          </ul>
+          
+          <div class="status-summary" id="statusSummary">
+            <span class="status-badge status-waiting">Esperando fotografía...</span>
+          </div>
+        </aside>
+
+      </main>
+
+      <!-- Camera Modal -->
+      <div class="modal" id="cameraModal">
+        <div class="modal-content card">
+          <div class="modal-header">
+            <h3>Tomar Foto con la Cámara</h3>
+            <button class="close-btn" id="closeCameraBtn"><i data-lucide="x"></i></button>
+          </div>
+          <div class="modal-body">
+            <div class="video-container">
+              <video id="cameraVideo" autoplay playsinline></video>
+              <div class="video-silhouette">
+                <svg viewBox="0 0 240 288" xmlns="http://www.w3.org/2000/svg">
+                  <ellipse cx="120" cy="115" rx="55" ry="70" class="guide-line-modal" />
+                  <path d="M 30,288 C 30,240 70,205 120,205 C 170,205 210,240 210,288" class="guide-line-modal" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelCaptureBtn">Cancelar</button>
+            <button class="btn btn-primary" id="capturePhotoBtn"><i data-lucide="aperture"></i> Capturar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="app-footer-note">
+        <p>&copy; 2026 FotoUni. Procesamiento seguro en navegador local. Ninguna foto se envía a ningún servidor.</p>
+      </footer>
+    </div>
+    
+    <!-- Cropper.js JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
